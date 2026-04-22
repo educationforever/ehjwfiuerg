@@ -1,80 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Classroom Portal - Media</title>
+    <title>Media Portal</title>
     <style>
-        body { background: #121212; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow-x: hidden; }
-        nav { background: #1f1f1f; padding: 15px; display: flex; gap: 10px; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        input { flex-grow: 1; padding: 12px; border-radius: 5px; border: none; background: #2c2c2c; color: white; }
-        button { padding: 10px 20px; border-radius: 5px; border: none; background: #3ea6ff; color: white; cursor: pointer; font-weight: bold; }
-        #feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
-        .vid-card { background: #1f1f1f; border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
-        .vid-card:hover { transform: translateY(-5px); border-color: #3ea6ff; }
-        .vid-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
-        .vid-card h3 { font-size: 14px; padding: 10px; margin: 0; height: 40px; overflow: hidden; }
-        #player-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 100; }
-        iframe { width: 100%; height: 90%; border: none; }
-        .back-btn { padding: 10px; background: #333; color: white; text-align: center; cursor: pointer; }
+        body { background: #000; color: white; font-family: sans-serif; text-align: center; }
+        .container { margin-top: 50px; }
+        input { padding: 12px; width: 50%; border-radius: 5px; border: none; }
+        button { padding: 12px; background: #ff0000; color: white; border: none; cursor: pointer; }
+        iframe { width: 90%; height: 80vh; border: 2px solid #333; margin-top: 20px; border-radius: 10px; }
     </style>
 </head>
 <body>
-
-<nav>
-    <input type="text" id="searchQuery" placeholder="Search YouTube stealthily...">
-    <button onclick="search()">Search</button>
-</nav>
-
-<div id="feed">
+    <div class="container">
+        <h2>Stealth Browser</h2>
+        <input type="text" id="url" placeholder="Paste YouTube Link here...">
+        <button onclick="loadVid()">Watch</button>
+        <div id="display"></div>
     </div>
 
-<div id="player-overlay">
-    <div class="back-btn" onclick="closeVideo()">⬅ Close Video (Back to Search)</div>
-    <iframe id="main-player" src="" allowfullscreen></iframe>
-</div>
+    <script>
+        function loadVid() {
+            let val = document.getElementById('url').value;
+            let id = "";
+            
+            if (val.includes("v=")) id = val.split("v=")[1].split("&")[0];
+            else if (val.includes("be/")) id = val.split("be/")[1];
+            else id = val;
 
-<script>
-    const apiInstance = "https://inv.riverside.rocks"; // If blocked, swap with another Invidious instance
-
-    async function search() {
-        const q = document.getElementById('searchQuery').value;
-        const feed = document.getElementById('feed');
-        feed.innerHTML = "Searching for content...";
-
-        try {
-            const res = await fetch(`${apiInstance}/api/v1/search?q=${encodeURIComponent(q)}`);
-            const data = await res.json();
-            feed.innerHTML = "";
-
-            data.forEach(item => {
-                if(item.type === "video") {
-                    const card = document.createElement('div');
-                    card.className = 'vid-card';
-                    card.onclick = () => playVideo(item.videoId);
-                    card.innerHTML = `
-                        <img src="${item.videoThumbnails[0].url}">
-                        <h3>${item.title}</h3>
-                    `;
-                    feed.appendChild(card);
-                }
-            });
-        } catch (e) {
-            feed.innerHTML = "Error: Instance might be down. Try searching again.";
+            // This pulls from Piped, which Securly usually doesn't recognize as YouTube
+            document.getElementById('display').innerHTML = 
+                `<iframe src="https://pipedapi.kavin.rocks/embed/${id}" allowfullscreen></iframe>`;
         }
-    }
-
-    function playVideo(id) {
-        const overlay = document.getElementById('player-overlay');
-        const player = document.getElementById('main-player');
-        // Using nocookie domain to slip past basic Securly filters
-        player.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
-        overlay.style.display = 'block';
-    }
-
-    function closeVideo() {
-        document.getElementById('player-overlay').style.display = 'none';
-        document.getElementById('main-player').src = "";
-    }
-</script>
-
+    </script>
 </body>
 </html>
