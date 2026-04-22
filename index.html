@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Study Portal - Video Player</title>
+    <style>
+        body { background: #111; color: white; font-family: sans-serif; text-align: center; }
+        iframe { width: 80%; height: 500px; border: 2px solid #444; margin-top: 20px; }
+        input { padding: 10px; width: 300px; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; border-radius: 5px; background: #007bff; color: white; cursor: pointer; border: none; }
+    </style>
+</head>
+<body>
+    <h1>Video Viewer</h1>
+    <input type="text" id="vidUrl" placeholder="Paste YouTube Link or ID here">
+    <button onclick="loadVideo()">Watch</button>
+    <br>
+    <div id="player"></div>
+
+    <script>
+        function loadVideo() {
+            let input = document.getElementById('vidUrl').value;
+            let videoId = "";
+            
+            // Logic to grab the ID from a full link or just the ID
+            if (input.includes("v=")) {
+                videoId = input.split("v=")[1].split("&")[0];
+            } else if (input.includes("be/")) {
+                videoId = input.split("be/")[1];
+            } else {
+                videoId = input;
+            }
+
+            document.getElementById('player').innerHTML = 
+                `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+        }
+    </script>
+</body>
+</html>
