@@ -1,91 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Portal</title>
+    <title>Classroom Portal - Media</title>
     <style>
-        body { background: #0f0f0f; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; }
-        .search-box { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; }
-        input { padding: 12px; width: 60%; border-radius: 20px; border: 1px solid #333; background: #1a1a1a; color: white; }
-        button { padding: 10px 20px; border-radius: 20px; border: none; background: #cc0000; color: white; cursor: pointer; font-weight: bold; }
-        #results { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .video-card { cursor: pointer; transition: 0.2s; border-radius: 10px; overflow: hidden; background: #1a1a1a; }
-        .video-card:hover { transform: scale(1.05); background: #2a2a2a; }
-        .video-card img { width: 100%; display: block; }
-        .video-card p { padding: 10px; font-size: 14px; margin: 0; height: 40px; overflow: hidden; }
-        #player-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
-        iframe { width: 80%; height: 70%; border: none; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-        .close-btn { margin-top: 20px; padding: 10px 30px; background: white; color: black; border-radius: 5px; cursor: pointer; }
+        body { background: #121212; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow-x: hidden; }
+        nav { background: #1f1f1f; padding: 15px; display: flex; gap: 10px; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        input { flex-grow: 1; padding: 12px; border-radius: 5px; border: none; background: #2c2c2c; color: white; }
+        button { padding: 10px 20px; border-radius: 5px; border: none; background: #3ea6ff; color: white; cursor: pointer; font-weight: bold; }
+        #feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
+        .vid-card { background: #1f1f1f; border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
+        .vid-card:hover { transform: translateY(-5px); border-color: #3ea6ff; }
+        .vid-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .vid-card h3 { font-size: 14px; padding: 10px; margin: 0; height: 40px; overflow: hidden; }
+        #player-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 100; }
+        iframe { width: 100%; height: 90%; border: none; }
+        .back-btn { padding: 10px; background: #333; color: white; text-align: center; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="search-box">
-    <input type="text" id="query" placeholder="Search for videos...">
+<nav>
+    <input type="text" id="searchQuery" placeholder="Search YouTube stealthily...">
     <button onclick="search()">Search</button>
-</div>
+</nav>
 
-<div id="results"></div>
+<div id="feed">
+    </div>
 
-<div id="player-container">
-    <iframe id="video-player" src="" allowfullscreen></iframe>
-    <div class="close-btn" onclick="closePlayer()">Close Player</div>
+<div id="player-overlay">
+    <div class="back-btn" onclick="closeVideo()">⬅ Close Video (Back to Search)</div>
+    <iframe id="main-player" src="" allowfullscreen></iframe>
 </div>
 
 <script>
-    // List of public Invidious instances to fetch data from
-    const instances = ["https://invidious.flokinet.to", "https://inv.tux.party", "https://yewtu.be"];
-    let currentInstance = instances[0];
+    const apiInstance = "https://inv.riverside.rocks"; // If blocked, swap with another Invidious instance
 
     async function search() {
-        const query = document.getElementById('query').value;
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = "Searching...";
+        const q = document.getElementById('searchQuery').value;
+        const feed = document.getElementById('feed');
+        feed.innerHTML = "Searching for content...";
 
         try {
-            const response = await fetch(`${currentInstance}/api/v1/search?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
-            
-            resultsDiv.innerHTML = "";
-            data.forEach(video => {
-                if (video.type === "video") {
+            const res = await fetch(`${apiInstance}/api/v1/search?q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            feed.innerHTML = "";
+
+            data.forEach(item => {
+                if(item.type === "video") {
                     const card = document.createElement('div');
-                    card.className = 'video-card';
-                    card.onclick = () => playVideo(video.videoId);
+                    card.className = 'vid-card';
+                    card.onclick = () => playVideo(item.videoId);
                     card.innerHTML = `
-                        <img src="${video.videoThumbnails[0].url}" alt="thumb">
-                        <p>${video.title}</p>
+                        <img src="${item.videoThumbnails[0].url}">
+                        <h3>${item.title}</h3>
                     `;
-                    resultsDiv.appendChild(card);
+                    feed.appendChild(card);
                 }
             });
-        } catch (err) {
-            resultsDiv.innerHTML = "Error loading videos. The instance might be blocked. Try another!";
-            // Rotate instance on error
-            currentInstance = instances[(instances.indexOf(currentInstance) + 1) % instances.length];
+        } catch (e) {
+            feed.innerHTML = "Error: Instance might be down. Try searching again.";
         }
     }
 
     function playVideo(id) {
-        const container = document.getElementById('player-container');
-        const player = document.getElementById('video-player');
-        // Using youtube-nocookie for the actual player as it's more stable
+        const overlay = document.getElementById('player-overlay');
+        const player = document.getElementById('main-player');
+        // Using nocookie domain to slip past basic Securly filters
         player.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
-        container.style.display = 'flex';
+        overlay.style.display = 'block';
     }
 
-    function closePlayer() {
-        const container = document.getElementById('player-container');
-        const player = document.getElementById('video-player');
-        player.src = "";
-        container.style.display = 'none';
+    function closeVideo() {
+        document.getElementById('player-overlay').style.display = 'none';
+        document.getElementById('main-player').src = "";
     }
-
-    // Allow "Enter" key to search
-    document.getElementById('query').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') search();
-    });
 </script>
 
 </body>
