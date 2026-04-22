@@ -1,38 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Study Portal - Video Player</title>  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Portal</title>
     <style>
-        body { background: #111; color: white; font-family: sans-serif; text-align: center; }
-        iframe { width: 80%; height: 500px; border: 2px solid #444; margin-top: 20px; }
-        input { padding: 10px; width: 300px; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; border-radius: 5px; background: #007bff; color: white; cursor: pointer; border: none; }
+        body { background: #0f0f0f; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; }
+        .search-box { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; }
+        input { padding: 12px; width: 60%; border-radius: 20px; border: 1px solid #333; background: #1a1a1a; color: white; }
+        button { padding: 10px 20px; border-radius: 20px; border: none; background: #cc0000; color: white; cursor: pointer; font-weight: bold; }
+        #results { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .video-card { cursor: pointer; transition: 0.2s; border-radius: 10px; overflow: hidden; background: #1a1a1a; }
+        .video-card:hover { transform: scale(1.05); background: #2a2a2a; }
+        .video-card img { width: 100%; display: block; }
+        .video-card p { padding: 10px; font-size: 14px; margin: 0; height: 40px; overflow: hidden; }
+        #player-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+        iframe { width: 80%; height: 70%; border: none; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        .close-btn { margin-top: 20px; padding: 10px 30px; background: white; color: black; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>Video Viewer</h1>
-    <input type="text" id="vidUrl" placeholder="Paste YouTube Link or ID here">
-    <button onclick="loadVideo()">Watch</button>
-    <br>
-    <div id="player"></div>
 
-    <script>
-        function loadVideo() {
-            let input = document.getElementById('vidUrl').value;
-            let videoId = "";
+<div class="search-box">
+    <input type="text" id="query" placeholder="Search for videos...">
+    <button onclick="search()">Search</button>
+</div>
+
+<div id="results"></div>
+
+<div id="player-container">
+    <iframe id="video-player" src="" allowfullscreen></iframe>
+    <div class="close-btn" onclick="closePlayer()">Close Player</div>
+</div>
+
+<script>
+    // List of public Invidious instances to fetch data from
+    const instances = ["https://invidious.flokinet.to", "https://inv.tux.party", "https://yewtu.be"];
+    let currentInstance = instances[0];
+
+    async function search() {
+        const query = document.getElementById('query').value;
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = "Searching...";
+
+        try {
+            const response = await fetch(`${currentInstance}/api/v1/search?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
             
-            // Logic to grab the ID from a full link or just the ID
-            if (input.includes("v=")) {
-                videoId = input.split("v=")[1].split("&")[0];
-            } else if (input.includes("be/")) {
-                videoId = input.split("be/")[1];
-            } else {
-                videoId = input;
-            }
-
-            document.getElementById('player').innerHTML = 
-                `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+            resultsDiv.innerHTML = "";
+            data.forEach(video => {
+                if (video.type === "video") {
+                    const card = document.createElement('div');
+                    card.className = 'video-card';
+                    card.onclick = () => playVideo(video.videoId);
+                    card.innerHTML = `
+                        <img src="${video.videoThumbnails[0].url}" alt="thumb">
+                        <p>${video.title}</p>
+                    `;
+                    resultsDiv.appendChild(card);
+                }
+            });
+        } catch (err) {
+            resultsDiv.innerHTML = "Error loading videos. The instance might be blocked. Try another!";
+            // Rotate instance on error
+            currentInstance = instances[(instances.indexOf(currentInstance) + 1) % instances.length];
         }
-    </script>
+    }
+
+    function playVideo(id) {
+        const container = document.getElementById('player-container');
+        const player = document.getElementById('video-player');
+        // Using youtube-nocookie for the actual player as it's more stable
+        player.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
+        container.style.display = 'flex';
+    }
+
+    function closePlayer() {
+        const container = document.getElementById('player-container');
+        const player = document.getElementById('video-player');
+        player.src = "";
+        container.style.display = 'none';
+    }
+
+    // Allow "Enter" key to search
+    document.getElementById('query').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') search();
+    });
+</script>
+
 </body>
 </html>
